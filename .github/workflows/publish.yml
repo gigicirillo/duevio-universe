@@ -1,0 +1,40 @@
+name: Publish Duevio
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dist/**'
+      - '.github/workflows/publish.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: duevio-pages
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify production assets
+        run: |
+          test -s dist/index.html
+          test -s dist/content.json
+          for clip in drop arrival luminescence; do
+            test "$(find "dist/frames/$clip" -name 'frame_*.jpg' | wc -l)" -eq 150
+          done
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+      - name: Publish static site
+        id: deployment
+        uses: actions/deploy-pages@v5
+        with:
+          timeout: 1800000

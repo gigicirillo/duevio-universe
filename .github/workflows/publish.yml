@@ -1,9 +1,9 @@
 name: Publish Duevio
 on:
   push:
-    branches: [main]
+    branches: [gh-pages]
     paths:
-      - 'dist/**'
+      - '**'
       - '.github/workflows/publish.yml'
   workflow_dispatch:
 permissions:
@@ -24,15 +24,15 @@ jobs:
       - uses: actions/checkout@v4
       - name: Verify production assets
         run: |
-          test -s dist/index.html
-          test -s dist/content.json
+          test -s index.html
+          test -s content.json
           for clip in drop arrival luminescence; do
-            test "$(find "dist/frames/$clip" -name 'frame_*.jpg' | wc -l)" -eq 150
+            test "$(find "frames/$clip" -name 'frame_*.jpg' | wc -l)" -eq 150
           done
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: dist
+          path: .
       - name: Publish static site
         id: deployment
         uses: actions/deploy-pages@v5

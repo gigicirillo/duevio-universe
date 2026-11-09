@@ -44,7 +44,7 @@ async function loadTranslations() {
   }
 }
 
-const mobileClips = ['clip-a.mp4', 'clip-b.mp4', 'clip-c.mp4'];
+const mobileClips = ['clip-a-detail.mp4', 'clip-b-detail.mp4', 'clip-c-detail.mp4'];
 const mobileVideo = $('#fallback');
 let mobileClip = -1;
 let mobileVideoVisible = false;
@@ -59,8 +59,8 @@ function updateMobileVideo(clip, visible) {
   const changed = clip !== mobileClip;
   if (changed) {
     mobileClip = clip;
-    mobileVideo.poster = clip === 0 ? 'assets/anchor-preview.jpg' :
-      `frames/${clips[clip]}/frame_0001.jpg`;
+    mobileVideo.poster = clip === 0 ? 'assets/anchor-detail.webp' :
+      `frames/${clips[clip]}/frame_0001.jpg?v=detail`;
     mobileVideo.src = `assets/${mobileClips[clip]}`;
   }
   if (changed || !mobileVideoVisible) mobileVideo.play().catch(() => {});
@@ -69,7 +69,7 @@ function updateMobileVideo(clip, visible) {
 
 const anchor = new Image();
 anchor.onload = () => { dirty = true; };
-if (!fallback) anchor.src = 'assets/anchor-preview.jpg';
+if (!fallback) anchor.src = 'assets/anchor-detail.webp';
 const cache = new Map(), pending = new Set(), unavailable = new Set();
 let requestedFrame = 0;
 let ready=false,progress=0,lastFrame=-1,lastWidth=0,lastHeight=0,home=true,dirty=true,lenis=null,pages={};
@@ -122,7 +122,7 @@ function loadNearbyFrames() {
     };
     const clip = clips[Math.floor(index / 150)];
     const number = String(index % 150 + 1).padStart(4, '0');
-    image.src = `frames/${clip}/frame_${number}.jpg`;
+    image.src = `frames/${clip}/frame_${number}.jpg?v=detail`;
   }
 }
 
@@ -177,7 +177,7 @@ function revealEditorialMedia() {
   }
 }
 
-function render(p){const scene=sceneAt(p),index=scene.clip*150+Math.min(149,Math.floor(clamp(scene.t)*149));const w=stage.clientWidth,h=stage.clientHeight,dpr=Math.min(devicePixelRatio||1,1.5);const resize=w!==lastWidth||h!==lastHeight;if(resize){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);lastWidth=w;lastHeight=h;}if(!dirty&&index===lastFrame&&!resize)return;lastFrame=index;dirty=false;
+function render(p){const scene=sceneAt(p),index=scene.clip*150+Math.min(149,Math.floor(clamp(scene.t)*149));const w=stage.clientWidth,h=stage.clientHeight,dpr=Math.min(devicePixelRatio||1,2);const resize=w!==lastWidth||h!==lastHeight;if(resize){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.imageSmoothingQuality='high';lastWidth=w;lastHeight=h;}if(!dirty&&index===lastFrame&&!resize)return;lastFrame=index;dirty=false;
 if (!fallback) {
   requestedFrame = index;
   loadNearbyFrames();

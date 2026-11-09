@@ -31,8 +31,8 @@ html,body{overflow-x:clip}.source-page table{display:block;overflow-x:auto}.sour
 .hero-screens::before {
   content: "";
   position: absolute;
-  inset: 7% -5% 1%;
-  background: radial-gradient(ellipse at 54% 64%, #32f4c96b, #21a69629 40%, transparent 72%);
+  inset: 2% -12% -20%;
+  background: radial-gradient(ellipse closest-side, #32f4c96b, #21a69629 48%, transparent 98%);
   opacity: .86;
   pointer-events: none;
 }

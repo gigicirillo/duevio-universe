@@ -34,7 +34,7 @@ function applyTranslations(root) {
 async function loadTranslations() {
   if (language === 'en') return;
   try {
-    const response = await fetch(`assets/i18n/${language}.json`, { signal: AbortSignal.timeout(5000) });
+    const response = await fetch(`assets/i18n/${language}.json?v=arrows`, { signal: AbortSignal.timeout(5000) });
     if (!response.ok) throw Error('Translation unavailable');
     translations = await response.json();
   } catch (error) {

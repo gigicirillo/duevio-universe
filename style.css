@@ -318,3 +318,12 @@ html,body{overflow-x:clip}.source-page table{display:block;overflow-x:auto}.sour
 #scene-veil.city-veil {
   background: radial-gradient(ellipse at 50% 65%, #1b3847, #08121d 74%);
 }
+
+.arrow-up-right {
+  display: inline-block;
+  width: .9em;
+  height: .9em;
+  vertical-align: -.06em;
+  background: currentColor;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 21 21 3M14 3h7v7' fill='none' stroke='black' stroke-width='1.7'/%3E%3C/svg%3E") center / contain no-repeat;
+}

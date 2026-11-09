@@ -1,7 +1,6 @@
 'use strict';
 const $=s=>document.querySelector(s), clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const canvas=$('#film'),ctx=canvas.getContext('2d',{alpha:false}),stage=$('#stage'),journey=$('#journey');
-const fallback=matchMedia('(max-width:850px), (prefers-reduced-motion:reduce)').matches;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const supportedLanguages = ['en', 'it', 'de', 'es', 'fr', 'ru'];
 const languageParam = new URL(location.href).searchParams.get('lang');
@@ -44,32 +43,9 @@ async function loadTranslations() {
   }
 }
 
-const mobileClips = ['clip-a-detail.mp4', 'clip-b-detail.mp4', 'clip-c-detail.mp4'];
-const mobileVideo = $('#fallback');
-let mobileClip = -1;
-let mobileVideoVisible = false;
-
-function updateMobileVideo(clip, visible) {
-  if (!fallback || reducedMotion) return;
-  if (!visible) {
-    if (mobileVideoVisible) mobileVideo.pause();
-    mobileVideoVisible = false;
-    return;
-  }
-  const changed = clip !== mobileClip;
-  if (changed) {
-    mobileClip = clip;
-    mobileVideo.poster = clip === 0 ? 'assets/anchor-detail.webp' :
-      `frames/${clips[clip]}/frame_0001.jpg?v=detail`;
-    mobileVideo.src = `assets/${mobileClips[clip]}`;
-  }
-  if (changed || !mobileVideoVisible) mobileVideo.play().catch(() => {});
-  mobileVideoVisible = true;
-}
-
 const anchor = new Image();
 anchor.onload = () => { dirty = true; };
-if (!fallback) anchor.src = 'assets/anchor-detail.webp';
+if (!reducedMotion) anchor.src = 'assets/anchor-detail.webp';
 const cache = new Map(), pending = new Set(), unavailable = new Set();
 let requestedFrame = 0;
 let ready=false,progress=0,lastFrame=-1,lastWidth=0,lastHeight=0,home=true,dirty=true,lenis=null,pages={};
@@ -77,8 +53,8 @@ const clips=['drop','arrival','luminescence'];
 const setLoad=n=>{$('#load-number').textContent=n+'%';$('.load-line i').style.width=n+'%'};
 function sceneAt(p){if(p<.28)return {clip:0,t:p/.28};if(p<.72)return {clip:1,t:clamp((p-.28)/.396)};return {clip:2,t:(p-.72)/.28}}
 function startSmoothScroll() {
-  if (ready && !fallback && !lenis && window.Lenis) {
-    lenis = new Lenis({ lerp: .085, smoothWheel: true });
+  if (ready && !reducedMotion && !lenis && window.Lenis) {
+    lenis = new Lenis({ lerp: .085, smoothWheel: true, syncTouch: false });
   }
 }
 $('#lenis-script').addEventListener('load', startSmoothScroll);
@@ -94,7 +70,7 @@ function unlock() {
 }
 
 function loadNearbyFrames() {
-  if (!home || fallback) return;
+  if (!home || reducedMotion) return;
   const offsets = [0, 1, 2, -1, 3, -2, 4, 5, 6];
   for (const offset of offsets) {
     if (pending.size >= 6) break;
@@ -178,7 +154,7 @@ function revealEditorialMedia() {
 }
 
 function render(p){const scene=sceneAt(p),index=scene.clip*150+Math.min(149,Math.floor(clamp(scene.t)*149));const w=stage.clientWidth,h=stage.clientHeight,dpr=Math.min(devicePixelRatio||1,2);const resize=w!==lastWidth||h!==lastHeight;if(resize){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.imageSmoothingQuality='high';lastWidth=w;lastHeight=h;}if(!dirty&&index===lastFrame&&!resize)return;lastFrame=index;dirty=false;
-if (!fallback) {
+if (!reducedMotion) {
   requestedFrame = index;
   loadNearbyFrames();
   const nearest = [...cache.keys()].reduce((best, frame) =>
@@ -189,7 +165,7 @@ if (!fallback) {
   else if (nearest !== undefined) cover(cache.get(nearest));
 }
 let color=[5,9,16],fg='#e9edea';if(scene.clip===1){color=scene.t<.7?mix([0,0,0],[210,242,247],scene.t/.7):mix([210,242,247],[255,255,255],(scene.t-.7)/.3);if(scene.t>.45)fg='#12232c';}if(scene.clip===2){color=mix([11,20,39],[0,0,0],scene.t);}
-if(fallback){color=[5,13,30];fg='#e9edea';}stage.style.background=rgb(color);document.body.style.background=rgb(color);stage.style.color=fg;document.body.classList.toggle("bright-stage",!fallback&&scene.clip===1&&scene.t>.45);canvas.style.opacity=scene.clip===1?String(.95-.25*scene.t):'1';$('.film-shade').style.background=scene.clip===1?`linear-gradient(180deg,${rgb(color)} 0%,transparent 38%,transparent 65%,${rgb(color)} 100%)`:'linear-gradient(180deg,#05091055,transparent 45%,#05091010 70%,#050910cc)';
+if(reducedMotion){color=[5,13,30];fg='#e9edea';}stage.style.background=rgb(color);document.body.style.background=rgb(color);stage.style.color=fg;document.body.classList.toggle("bright-stage",!reducedMotion&&scene.clip===1&&scene.t>.45);canvas.style.opacity=scene.clip===1?String(.95-.25*scene.t):'1';$('.film-shade').style.background=scene.clip===1?`linear-gradient(180deg,${rgb(color)} 0%,transparent 38%,transparent 65%,${rgb(color)} 100%)`:'linear-gradient(180deg,#05091055,transparent 45%,#05091010 70%,#050910cc)';
 const heroOpacity=clamp(1-p/.16);$('.hero-title').style.opacity=heroOpacity;$('.hero-title').style.transform=`translateY(${-p*140}px)`;
 const desc=scene.clip===1?Math.min(clamp(scene.t/.12),clamp((1-scene.t)/.16)):0;$('#descent-copy').style.opacity=desc;$('#descent-copy').style.transform=`translateY(${(1-desc)*25}px)`;$('#light-copy').style.opacity=scene.clip===2?clamp(scene.t/.15):0;
 const altitude = scene.clip === 0 ? 20000 :
@@ -204,7 +180,7 @@ $('.alt-track i').style.transform = `scaleX(${1 - altitude / 20000})`;
 $('#zone').textContent = altitude > 3000 ? 'ATMOSPHERIC DESCENT' :
   altitude > 1000 ? 'LANDING ZONE' : altitude > 200 ? 'TWILIGHT ZONE' : 'END OF SUNLIGHT';
 $('#chapter').textContent=['00 — FROM THE UNIVERSE','01 — THE DESCENT','02 — LUMINESCENCE'][scene.clip];const marks=[{a:3000,text:'LANDING ZONE / GROUND'},{a:1000,text:'TWILIGHT ZONE'},{a:200,text:'END OF SUNLIGHT'}];const mark=marks.find(m=>Math.abs(altitude-m.a)<(m.a===3000?1800:500));$('#marker').style.opacity=scene.clip===1&&mark?'1':'0';if(mark){$('#marker-alt').textContent=mark.a.toLocaleString()+' m';$('#marker-text').textContent=mark.text;}}
-function tick(time){if(lenis)lenis.raf(time);if(ready&&home){const max=journey.offsetHeight-innerHeight,target=clamp(scrollY/Math.max(1,max));progress=fallback?target:progress+(target-progress)*.12;if(Math.abs(target-progress)<.00001)progress=target;updateMobileVideo(sceneAt(progress).clip,scrollY<journey.offsetHeight);render(progress);}requestAnimationFrame(tick)}
+function tick(time){if(lenis)lenis.raf(time);if(ready&&home){const max=journey.offsetHeight-stage.clientHeight,target=clamp(scrollY/Math.max(1,max));progress=reducedMotion?target:progress+(target-progress)*.12;if(Math.abs(target-progress)<.00001)progress=target;render(progress);}requestAnimationFrame(tick)}
 const heroLandingObserver = new IntersectionObserver((entries, observer) => {
   for (const entry of entries) {
     if (!entry.isIntersecting) continue;
@@ -222,7 +198,7 @@ function observeHeroLanding() {
 }
 
 function route(){const key=location.hash.slice(1)||'home';if(!pages.home)return;if(key==='experience-end'){if(!home){location.hash='home';return}$('#experience-end').scrollIntoView({behavior:'smooth'});return;}if(!pages[key]){const el=document.getElementById(key);if(el){el.scrollIntoView({behavior:'smooth'});return;}return;}
-home=key==='home';if(!home)document.body.classList.remove("bright-stage");document.body.classList.toggle('detail-mode',!home);$('#detail').hidden=home;$('#homepage').hidden=!home;if(!home){$('#detail').innerHTML=pages[key];applyTranslations($('#detail'));}observeHeroLanding();document.querySelectorAll('header nav a').forEach(a=>a.classList.toggle('active',a.hash==='#'+key));$('header').classList.remove('menu-open');$('#menu-toggle').setAttribute('aria-expanded','false');if(lenis)lenis.scrollTo(0,{immediate:true});window.scrollTo(0,0);progress=0;lastFrame=-1;dirty=true;document.title=home?'Duevio — The ideal compliance platform is not science fiction.':`Duevio — ${$('#detail h1')?.textContent.trim()||key}`;if(!home)updateMobileVideo(0,false);}
+home=key==='home';if(!home)document.body.classList.remove("bright-stage");document.body.classList.toggle('detail-mode',!home);$('#detail').hidden=home;$('#homepage').hidden=!home;if(!home){$('#detail').innerHTML=pages[key];applyTranslations($('#detail'));}observeHeroLanding();document.querySelectorAll('header nav a').forEach(a=>a.classList.toggle('active',a.hash==='#'+key));$('header').classList.remove('menu-open');$('#menu-toggle').setAttribute('aria-expanded','false');if(lenis)lenis.scrollTo(0,{immediate:true});window.scrollTo(0,0);progress=0;lastFrame=-1;dirty=true;document.title=home?'Duevio — The ideal compliance platform is not science fiction.':`Duevio — ${$('#detail h1')?.textContent.trim()||key}`;}
 $('#menu-toggle').onclick=()=>{const open=$('header').classList.toggle('menu-open');$('#menu-toggle').setAttribute('aria-expanded',String(open));};window.addEventListener('hashchange',route);window.addEventListener('resize',()=>{dirty=true});
 const shots=['Dashboard scura Duevio frontale-6.png','Schermata Duevio della coda KYC-11.png','Schermata Duevio frontale su sfondo trasparente-3.png','Schermata riepilogo cliente Duevio-12.png'];document.querySelectorAll('[data-shot]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-shot]').forEach(a=>a.classList.remove('selected'));b.classList.add('selected');$('.gallery-main img').src='assets/'+shots[Number(b.dataset.shot)];$('.gallery-main img').alt=b.textContent.replace(/^\d+ \/ /,'')+' — Duevio platform';});
 document.addEventListener('click',e=>{const a=e.target.closest('a');if(a?.getAttribute('href')==='#cookies'&&document.body.classList.contains('detail-mode')&&location.hash==='#cookies')return;});

@@ -73,6 +73,7 @@ $('#lenis-script').addEventListener('load', startSmoothScroll);
 function unlock() {
   setLoad(100);
   ready = true;
+  tryAutoplayWind();
   document.body.classList.remove('loading');
   $('#loader').classList.add('done');
   observeHeroLanding();
@@ -240,7 +241,7 @@ soundButton.setAttribute('aria-label', soundLabels[language]);
 soundButton.title = soundLabels[language];
 let soundContext;
 let windVolume;
-let soundEnabled = false;
+let soundEnabled = true;
 let windLevel = 0;
 
 function startHeroSound() {
@@ -260,42 +261,33 @@ function startHeroSound() {
   wind.start();
 }
 
-soundButton.addEventListener('click', async () => {
-  if (soundEnabled) {
-    soundEnabled = false;
-    soundButton.setAttribute('aria-pressed', 'false');
-    return;
-  }
-  try {
-    if (!soundContext) startHeroSound();
-    await soundContext.resume();
-    soundEnabled = true;
-    soundButton.setAttribute('aria-pressed', 'true');
-  } catch {
-    soundButton.setAttribute('aria-pressed', 'false');
-  }
-});
-
-function playDroplet() {
-  if (!soundEnabled || !home || progress >= .045 || document.hidden) return;
-  const now = soundContext.currentTime;
-  const tap = soundContext.createOscillator();
-  const volume = soundContext.createGain();
-  tap.frequency.setValueAtTime(1150 + Math.random() * 420, now);
-  tap.frequency.exponentialRampToValueAtTime(480, now + .05);
-  volume.gain.setValueAtTime(.001, now);
-  volume.gain.linearRampToValueAtTime(.025, now + .005);
-  volume.gain.exponentialRampToValueAtTime(.001, now + .075);
-  tap.connect(volume).connect(soundContext.destination);
-  tap.start(now);
-  tap.stop(now + .08);
+function syncSoundButton() {
+  soundButton.setAttribute('aria-pressed', String(soundEnabled && soundContext?.state === 'running'));
 }
 
-for (const eventName of ['animationstart', 'animationiteration']) {
-  heroDroplets.addEventListener(eventName, event => {
-    if (event.animationName === 'droplet-rise' && soundEnabled) {
-      setTimeout(playDroplet, 918); // Impact at 17% of the 5.4s rise animation.
+function tryAutoplayWind() {
+  if (!soundEnabled || !ready || !home || soundContext?.state === 'running') return;
+  try {
+    if (!soundContext) {
+      startHeroSound();
+      soundContext.addEventListener('statechange', syncSoundButton);
     }
+    soundContext.resume().then(syncSoundButton).catch(syncSoundButton);
+  } catch {
+    syncSoundButton();
+  }
+}
+
+soundButton.addEventListener('click', () => {
+  soundEnabled = !(soundEnabled && soundContext?.state === 'running');
+  syncSoundButton();
+  updateHeroSound();
+  tryAutoplayWind();
+});
+
+for (const event of ['pointerup', 'keydown']) {
+  document.addEventListener(event, interaction => {
+    if (!soundButton.contains(interaction.target)) tryAutoplayWind();
   });
 }
 
@@ -303,8 +295,8 @@ document.addEventListener('visibilitychange', updateHeroSound);
 
 function updateHeroSound() {
   if (!windVolume) return;
-  const level = soundEnabled && home && !document.hidden
-    ? Math.round(clamp(progress / .045) * clamp((.72 - progress) / .15) * 20) / 200
+  const level = soundEnabled && ready && home && soundContext.state === 'running' && !document.hidden
+    ? Math.round((.28 + .72 * clamp(progress / .045)) * clamp((.72 - progress) / .15) * 20) / 200
     : 0;
   if (level === windLevel) return;
   windLevel = level;
@@ -329,7 +321,7 @@ function observeHeroLanding() {
 }
 
 function route(){const key=location.hash.slice(1)||'home';if(!pages.home)return;if(key==='experience-end'){if(!home){location.hash='home';return}$('#experience-end').scrollIntoView({behavior:'smooth'});return;}if(!pages[key]){const el=document.getElementById(key);if(el){el.scrollIntoView({behavior:'smooth'});return;}return;}
-home=key==='home';if(!home)document.body.classList.remove("bright-stage");document.body.classList.toggle('detail-mode',!home);$('#detail').hidden=home;$('#homepage').hidden=!home;if(!home){$('#detail').innerHTML=pages[key];applyTranslations($('#detail'));}observeHeroLanding();document.querySelectorAll('header nav a').forEach(a=>a.classList.toggle('active',a.hash==='#'+key));$('header').classList.remove('menu-open');$('#menu-toggle').setAttribute('aria-expanded','false');if(lenis)lenis.scrollTo(0,{immediate:true});window.scrollTo(0,0);progress=0;lastFrame=-1;dirty=true;document.title=home?'Duevio — The ideal compliance platform is not science fiction.':`Duevio — ${$('#detail h1')?.textContent.trim()||key}`;}
+home=key==='home';tryAutoplayWind();if(!home)document.body.classList.remove("bright-stage");document.body.classList.toggle('detail-mode',!home);$('#detail').hidden=home;$('#homepage').hidden=!home;if(!home){$('#detail').innerHTML=pages[key];applyTranslations($('#detail'));}observeHeroLanding();document.querySelectorAll('header nav a').forEach(a=>a.classList.toggle('active',a.hash==='#'+key));$('header').classList.remove('menu-open');$('#menu-toggle').setAttribute('aria-expanded','false');if(lenis)lenis.scrollTo(0,{immediate:true});window.scrollTo(0,0);progress=0;lastFrame=-1;dirty=true;document.title=home?'Duevio — The ideal compliance platform is not science fiction.':`Duevio — ${$('#detail h1')?.textContent.trim()||key}`;}
 $('#menu-toggle').onclick=()=>{const open=$('header').classList.toggle('menu-open');$('#menu-toggle').setAttribute('aria-expanded',String(open));};window.addEventListener('hashchange',route);window.addEventListener('resize',()=>{dirty=true});
 const shots=['Dashboard scura Duevio frontale-6.png','Schermata Duevio della coda KYC-11.png','Schermata Duevio frontale su sfondo trasparente-3.png','Schermata riepilogo cliente Duevio-12.png'];document.querySelectorAll('[data-shot]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-shot]').forEach(a=>a.classList.remove('selected'));b.classList.add('selected');$('.gallery-main img').src='assets/'+shots[Number(b.dataset.shot)];$('.gallery-main img').alt=b.textContent.replace(/^\d+ \/ /,'')+' — Duevio platform';});
 document.addEventListener('click',e=>{const a=e.target.closest('a');if(a?.getAttribute('href')==='#cookies'&&document.body.classList.contains('detail-mode')&&location.hash==='#cookies')return;});

@@ -327,3 +327,12 @@ html,body{overflow-x:clip}.source-page table{display:block;overflow-x:auto}.sour
   background: currentColor;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M3 21 21 3M14 3h7v7' fill='none' stroke='black' stroke-width='1.7'/%3E%3C/svg%3E") center / contain no-repeat;
 }
+
+@media (min-width: 1000px) {
+  header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+  header > .brand { justify-self: start; }
+  header > .nav-actions { justify-self: end; }
+}

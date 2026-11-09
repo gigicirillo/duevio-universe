@@ -173,6 +173,39 @@ function updateSceneVeil(p) {
   sceneVeil.classList.toggle('city-veil', city > 0);
   sceneVeil.style.opacity = Math.max(cloud, city);
 }
+const startingAltitude = 500000;
+const exosphereLabels = { en: 'EXOSPHERE', it: 'ESOSFERA', de: 'EXOSPHÄRE', es: 'EXOSFERA', fr: 'EXOSPHÈRE', ru: 'ЭКЗОСФЕРА' };
+$('#exosphere').textContent = exosphereLabels[language];
+let countdownStartedAt;
+let departureAltitude = startingAltitude;
+let hasStartedDescent = false;
+let displayedAltitude;
+
+function updateAltitude(time, progress) {
+  if (countdownStartedAt === undefined) countdownStartedAt = time;
+  hasStartedDescent = hasStartedDescent || progress > 0;
+  if (!hasStartedDescent) {
+    // Keep the idle drift gentle and reserve the descent for scrolling.
+    departureAltitude = startingAltitude - Math.min(3000, Math.floor((time - countdownStartedAt) / 500));
+  }
+  const scene = sceneAt(progress);
+  const altitude = scene.clip === 0
+    ? Math.round(departureAltitude - (departureAltitude - 20000) * scene.t ** 1.2)
+    : scene.clip === 1 ? descentAltitude(scene.t) : 0;
+  if (altitude === displayedAltitude) return;
+  displayedAltitude = altitude;
+  const grounded = altitude === 0;
+  for (const selector of ['#altimeter', '#distance', '#marker']) {
+    $(selector).hidden = grounded;
+  }
+  $('#altitude').textContent = altitude.toLocaleString(language);
+  $('#distance').textContent = 'DISTANCE ' + String(startingAltitude - altitude).padStart(5, '0') + ' m';
+  $('.alt-track i').style.transform = `scaleX(${1 - altitude / startingAltitude})`;
+  $('#zone').textContent = altitude > 3000 ? 'ATMOSPHERIC DESCENT' :
+    altitude > 1000 ? 'LANDING ZONE' : altitude > 200 ? 'TWILIGHT ZONE' : 'END OF SUNLIGHT';
+  const marks=[{a:3000,text:'LANDING ZONE / GROUND'},{a:1000,text:'TWILIGHT ZONE'},{a:200,text:'END OF SUNLIGHT'}];const mark=marks.find(m=>Math.abs(altitude-m.a)<(m.a===3000?1800:500));$('#marker').style.opacity=scene.clip===1&&mark?'1':'0';if(mark){$('#marker-alt').textContent=mark.a.toLocaleString()+' m';$('#marker-text').textContent=mark.text;}
+}
+
 function render(p){
   updateSceneVeil(p);
   if (!reducedMotion) {
@@ -200,18 +233,7 @@ let color=[5,9,16],fg='#e9edea';if(scene.clip===1){color=scene.t<.7?mix([0,0,0],
 if(reducedMotion){color=[5,13,30];fg='#e9edea';}stage.style.background=rgb(color);document.body.style.background=rgb(color);stage.style.color=fg;document.body.classList.toggle("bright-stage",!reducedMotion&&scene.clip===1&&scene.t>.45);canvas.style.opacity=scene.clip===1?String(.95-.25*scene.t):'1';$('.film-shade').style.background=scene.clip===1?`linear-gradient(180deg,${rgb(color)} 0%,transparent 38%,transparent 65%,${rgb(color)} 100%)`:'linear-gradient(180deg,#05091055,transparent 45%,#05091010 70%,#050910cc)';
 const heroOpacity=clamp(1-p/.16);$('.hero-title').style.opacity=heroOpacity;$('.hero-title').style.transform=`translateY(${-p*140}px)`;
 const desc=scene.clip===1?Math.min(clamp((scene.t-.07)/.13),clamp((1-scene.t)/.16)):0;$('#descent-copy').style.opacity=desc;$('#descent-copy').style.transform=`translateY(${(1-desc)*25}px)`;$('#light-copy').style.opacity=scene.clip===2?clamp((scene.t-.07)/.16):0;
-const altitude = scene.clip === 0 ? 20000 :
-  scene.clip === 1 ? descentAltitude(scene.t) : 0;
-const grounded = altitude === 0;
-for (const selector of ['#altimeter', '#distance', '#marker']) {
-  $(selector).hidden = grounded;
-}
-$('#altitude').textContent = altitude.toLocaleString(language);
-$('#distance').textContent = 'DISTANCE ' + String(20000 - altitude).padStart(5, '0') + ' m';
-$('.alt-track i').style.transform = `scaleX(${1 - altitude / 20000})`;
-$('#zone').textContent = altitude > 3000 ? 'ATMOSPHERIC DESCENT' :
-  altitude > 1000 ? 'LANDING ZONE' : altitude > 200 ? 'TWILIGHT ZONE' : 'END OF SUNLIGHT';
-$('#chapter').textContent=['00 — FROM THE UNIVERSE','01 — THE DESCENT','02 — LUMINESCENCE'][scene.clip];const marks=[{a:3000,text:'LANDING ZONE / GROUND'},{a:1000,text:'TWILIGHT ZONE'},{a:200,text:'END OF SUNLIGHT'}];const mark=marks.find(m=>Math.abs(altitude-m.a)<(m.a===3000?1800:500));$('#marker').style.opacity=scene.clip===1&&mark?'1':'0';if(mark){$('#marker-alt').textContent=mark.a.toLocaleString()+' m';$('#marker-text').textContent=mark.text;}}
+$('#chapter').textContent=['00 — FROM THE UNIVERSE','01 — THE DESCENT','02 — LUMINESCENCE'][scene.clip];}
 const soundButton = $('.hero-sound');
 const soundLabels = { en: 'Sound', it: 'Audio', de: 'Ton', es: 'Sonido', fr: 'Son', ru: 'Звук' };
 soundButton.setAttribute('aria-label', soundLabels[language]);
@@ -289,7 +311,7 @@ function updateHeroSound() {
   windVolume.gain.setTargetAtTime(level, soundContext.currentTime, .18);
 }
 
-function tick(time){if(lenis)lenis.raf(time);if(ready&&home){const max=journey.offsetHeight-stage.clientHeight,target=clamp(scrollY/Math.max(1,max));progress=reducedMotion?target:progress+(target-progress)*.12;if(Math.abs(target-progress)<.00001)progress=target;render(progress);}updateHeroSound();requestAnimationFrame(tick)}
+function tick(time){if(lenis)lenis.raf(time);if(ready&&home){const max=journey.offsetHeight-stage.clientHeight,target=clamp(scrollY/Math.max(1,max));progress=reducedMotion?target:progress+(target-progress)*.12;if(Math.abs(target-progress)<.00001)progress=target;updateAltitude(time, progress);render(progress);}updateHeroSound();requestAnimationFrame(tick)}
 const heroLandingObserver = new IntersectionObserver((entries, observer) => {
   for (const entry of entries) {
     if (!entry.isIntersecting) continue;

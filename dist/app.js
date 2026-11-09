@@ -129,13 +129,14 @@ function loadNearbyFrames() {
 async function preload() {
   try {
     const [response] = await Promise.all([
-      fetch('content.json?v=20261109-led', { signal: AbortSignal.timeout(15000) }),
+      fetch('content.json?v=20261109-editorial', { signal: AbortSignal.timeout(15000) }),
       loadTranslations()
     ]);
     if (!response.ok) throw Error('Page content unavailable.');
     pages = await response.json();
     $('#home-content').innerHTML = pages.home;
     applyTranslations(document);
+    revealEditorialMedia();
     route();
     unlock();
   } catch (error) {
@@ -148,6 +149,34 @@ async function preload() {
 }
 function cover(im){const scale=Math.max(canvas.width/im.naturalWidth,canvas.height/im.naturalHeight);ctx.drawImage(im,(canvas.width-im.naturalWidth*scale)/2,(canvas.height-im.naturalHeight*scale)/2,im.naturalWidth*scale,im.naturalHeight*scale)}
 function mix(a,b,t){return a.map((v,i)=>Math.round(v+(b[i]-v)*t))}function rgb(v){return `rgb(${v.join(',')})`}
+// Match the altitude to the shot: skyline, between buildings, then street level.
+const descentWaypoints = [[0, 20000], [.35, 8500], [.55, 2600], [.68, 800], [.8, 280], [.9, 110], [1, 0]];
+function descentAltitude(progress) {
+  for (let index = 1; index < descentWaypoints.length; index++) {
+    const [end, altitude] = descentWaypoints[index];
+    if (progress > end) continue;
+    const [start, previous] = descentWaypoints[index - 1];
+    const fraction = (progress - start) / (end - start);
+    return Math.round(previous + (altitude - previous) * fraction);
+  }
+  return 0;
+}
+
+function revealEditorialMedia() {
+  if (reducedMotion || !('IntersectionObserver' in window)) return;
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      entry.target.classList.replace('editorial-pending', 'editorial-visible');
+      observer.unobserve(entry.target);
+    }
+  }, { threshold: .12 });
+  for (const item of document.querySelectorAll('[data-editorial-reveal]')) {
+    item.classList.add('editorial-pending');
+    observer.observe(item);
+  }
+}
+
 function render(p){const scene=sceneAt(p),index=scene.clip*150+Math.min(149,Math.floor(clamp(scene.t)*149));const w=stage.clientWidth,h=stage.clientHeight,dpr=Math.min(devicePixelRatio||1,1.5);const resize=w!==lastWidth||h!==lastHeight;if(resize){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);lastWidth=w;lastHeight=h;}if(!dirty&&index===lastFrame&&!resize)return;lastFrame=index;dirty=false;
 if (!fallback) {
   requestedFrame = index;
@@ -163,7 +192,17 @@ let color=[5,9,16],fg='#e9edea';if(scene.clip===1){color=scene.t<.7?mix([0,0,0],
 if(fallback){color=[5,13,30];fg='#e9edea';}stage.style.background=rgb(color);document.body.style.background=rgb(color);stage.style.color=fg;document.body.classList.toggle("bright-stage",!fallback&&scene.clip===1&&scene.t>.45);canvas.style.opacity=scene.clip===1?String(.95-.25*scene.t):'1';$('.film-shade').style.background=scene.clip===1?`linear-gradient(180deg,${rgb(color)} 0%,transparent 38%,transparent 65%,${rgb(color)} 100%)`:'linear-gradient(180deg,#05091055,transparent 45%,#05091010 70%,#050910cc)';
 const heroOpacity=clamp(1-p/.16);$('.hero-title').style.opacity=heroOpacity;$('.hero-title').style.transform=`translateY(${-p*140}px)`;
 const desc=scene.clip===1?Math.min(clamp(scene.t/.12),clamp((1-scene.t)/.16)):0;$('#descent-copy').style.opacity=desc;$('#descent-copy').style.transform=`translateY(${(1-desc)*25}px)`;$('#light-copy').style.opacity=scene.clip===2?clamp(scene.t/.15):0;
-const altitude=scene.clip===0?20000:scene.clip===1?Math.round(20000*(1-scene.t)):0;$('#altitude').textContent=altitude.toLocaleString('en-US');$('#distance').textContent='DISTANCE '+String(20000-altitude).padStart(5,'0')+' m';$('.alt-track i').style.transform=`scaleX(${1-altitude/20000})`;$('#zone').textContent=scene.clip===2?'LUMINESCENCE':altitude>3000?'ATMOSPHERIC DESCENT':altitude>1000?'LANDING ZONE':altitude>200?'TWILIGHT ZONE':altitude>0?'END OF SUNLIGHT':'GROUND / CONNECTED';
+const altitude = scene.clip === 0 ? 20000 :
+  scene.clip === 1 ? descentAltitude(scene.t) : 0;
+const grounded = altitude === 0;
+for (const selector of ['#altimeter', '#distance', '#marker']) {
+  $(selector).hidden = grounded;
+}
+$('#altitude').textContent = altitude.toLocaleString(language);
+$('#distance').textContent = 'DISTANCE ' + String(20000 - altitude).padStart(5, '0') + ' m';
+$('.alt-track i').style.transform = `scaleX(${1 - altitude / 20000})`;
+$('#zone').textContent = altitude > 3000 ? 'ATMOSPHERIC DESCENT' :
+  altitude > 1000 ? 'LANDING ZONE' : altitude > 200 ? 'TWILIGHT ZONE' : 'END OF SUNLIGHT';
 $('#chapter').textContent=['00 — FROM THE UNIVERSE','01 — THE DESCENT','02 — LUMINESCENCE'][scene.clip];const marks=[{a:3000,text:'LANDING ZONE / GROUND'},{a:1000,text:'TWILIGHT ZONE'},{a:200,text:'END OF SUNLIGHT'}];const mark=marks.find(m=>Math.abs(altitude-m.a)<(m.a===3000?1800:500));$('#marker').style.opacity=scene.clip===1&&mark?'1':'0';if(mark){$('#marker-alt').textContent=mark.a.toLocaleString()+' m';$('#marker-text').textContent=mark.text;}}
 function tick(time){if(lenis)lenis.raf(time);if(ready&&home){const max=journey.offsetHeight-innerHeight,target=clamp(scrollY/Math.max(1,max));progress=fallback?target:progress+(target-progress)*.12;if(Math.abs(target-progress)<.00001)progress=target;updateMobileVideo(sceneAt(progress).clip,scrollY<journey.offsetHeight);render(progress);}requestAnimationFrame(tick)}
 const heroLandingObserver = new IntersectionObserver((entries, observer) => {

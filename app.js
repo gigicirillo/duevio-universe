@@ -53,6 +53,8 @@ let paintedImage;
 const transitionFrames = [149, 150, 299, 300];
 const sceneVeil = $('#scene-veil');
 const solarRays = $('.solar-rays');
+const heroPoster = $('#fallback');
+const heroDroplets = $('.hero-droplets');
 function fadeBetween(progress, center, width) {
   const t = clamp(1 - Math.abs(progress - center) / width);
   return t * t * (3 - 2 * t);
@@ -171,7 +173,14 @@ function updateSceneVeil(p) {
   sceneVeil.classList.toggle('city-veil', city > 0);
   sceneVeil.style.opacity = Math.max(cloud, city);
 }
-function render(p){updateSceneVeil(p);const scene=sceneAt(p),index=scene.clip*150+Math.min(149,Math.floor(clamp(scene.t)*149));const w=stage.clientWidth,h=stage.clientHeight,dpr=Math.min(devicePixelRatio||1,2);const resize=w!==lastWidth||h!==lastHeight;if(resize){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.imageSmoothingQuality='high';lastWidth=w;lastHeight=h;}if(!dirty&&index===lastFrame&&!resize)return;lastFrame=index;dirty=false;
+function render(p){
+  updateSceneVeil(p);
+  if (!reducedMotion) {
+    const blend = clamp(p / .045);
+    heroPoster.style.opacity = 1 - blend * blend * (3 - 2 * blend);
+    heroDroplets.style.opacity = 1 - blend;
+  }
+  const scene=sceneAt(p),index=scene.clip*150+Math.min(149,Math.floor(clamp(scene.t)*149));const w=stage.clientWidth,h=stage.clientHeight,dpr=Math.min(devicePixelRatio||1,2);const resize=w!==lastWidth||h!==lastHeight;if(resize){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.imageSmoothingQuality='high';lastWidth=w;lastHeight=h;}if(!dirty&&index===lastFrame&&!resize)return;lastFrame=index;dirty=false;
 solarRays.style.opacity = clamp(1 - p / .12);
 if (!reducedMotion) {
   frameDirection = Math.sign(index - requestedFrame) || frameDirection;

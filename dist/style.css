@@ -316,7 +316,7 @@ html,body{overflow-x:clip}.source-page table{display:block;overflow-x:auto}.sour
 }
 
 .hero-title .eyebrow { font-size: clamp(10px, 1.05vw, 14px); }
-.hero-caption p { font-size: clamp(12px, 1.15vw, 16px); }
+.hero-caption p { font-size: clamp(12px, 1vw, 14px); }
 #scene-veil {
   position: absolute;
   inset: 0;
@@ -385,10 +385,10 @@ html,body{overflow-x:clip}.source-page table{display:block;overflow-x:auto}.sour
 }
 
 @media (min-width: 851px) {
-  .hero-title h1 { font-size: clamp(78px, min(11vw, 20vh), 170px); }
+  .hero-title h1 { font-size: clamp(68px, min(10vw, 17vh), 148px); }
 }
 @media (max-width: 850px) {
-  .hero-title h1 { font-size: 23vw; }
+  .hero-title h1 { font-size: min(21vw, 15vh); }
 }
 .editorial-mirror {
   padding-bottom: clamp(36px, 5vw, 80px);
@@ -487,4 +487,30 @@ html,body{overflow-x:clip}.source-page table{display:block;overflow-x:auto}.sour
 }
 @media (prefers-reduced-motion: reduce) {
   .hero-droplets { display: none; }
+}
+
+.solar-rays::before {
+  background:
+    radial-gradient(ellipse at 0% 8%, #ffc47c85, transparent 39%),
+    conic-gradient(from 119deg at 0% 8%,
+      transparent 1deg, #ffce8680 5deg, transparent 10deg,
+      transparent 15deg, #ffe1a894 19deg, transparent 25deg,
+      transparent 31deg, #ffc47c70 36deg, transparent 44deg);
+  mask-image: radial-gradient(ellipse at 0% 8%, #000 12%, transparent 78%);
+}
+.login {
+  transition: background-color .22s ease, color .22s ease, box-shadow .22s ease;
+}
+.login:is(:hover, :focus-visible) {
+  background: transparent;
+  color: #88ffeb;
+  box-shadow: 0 0 14px #32e6bb55;
+}
+.bright-stage .login:is(:hover, :focus-visible) {
+  color: var(--ink);
+  border-color: #168c7a;
+}
+@media (min-width: 851px) {
+  .hero-title .hero-caption { white-space: nowrap; }
+  .hero-title { top: 12%; }
 }

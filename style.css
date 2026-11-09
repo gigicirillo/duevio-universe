@@ -336,3 +336,38 @@ html,body{overflow-x:clip}.source-page table{display:block;overflow-x:auto}.sour
   header > .brand { justify-self: start; }
   header > .nav-actions { justify-self: end; }
 }
+
+.solar-rays {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+.solar-rays::before,
+.solar-rays::after {
+  content: "";
+  position: absolute;
+  inset: 32% 50% 0 0;
+  background:
+    radial-gradient(ellipse at 12% 75%, #ffc47c55, transparent 30%),
+    conic-gradient(from 6deg at 12% 75%,
+      transparent 1deg, #ffce8650 5deg, transparent 10deg,
+      transparent 15deg, #ffe1a864 19deg, transparent 25deg,
+      transparent 31deg, #ffc47c46 36deg, transparent 44deg);
+  mask-image: radial-gradient(ellipse at 12% 75%, #000 12%, transparent 68%);
+  opacity: 0;
+  animation: solar-ray-pulse 10s ease-in-out infinite;
+}
+.solar-rays::after {
+  inset: 32% 0 0 50%;
+  transform: scaleX(-1);
+  animation-delay: 5s;
+}
+@keyframes solar-ray-pulse {
+  0%, 35%, 100% { opacity: 0; }
+  16% { opacity: .92; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .solar-rays { display: none; }
+}

@@ -43,27 +43,13 @@ html,body{overflow-x:clip}.source-page table{display:block;overflow-x:auto}.sour
   top: 9%;
   left: 4%;
   z-index: 2;
-  padding: 3px;
-  border: 1px solid #99f8e4a8;
-  border-radius: 11px;
-  background: linear-gradient(145deg, #d2fff0a6, #0b2c31 30%, #24776d 90%);
-  box-shadow: 1px 1px #51d8c6a6, 3px 3px #19484a, 5px 5px #102f36,
-    8px 8px #091c24, 10px 10px 0 #132c35, 0 12px 38px #22d9b64a;
   transform: var(--screen-angle);
-}
-.hero-screen-glass::after {
-  content: "";
-  position: absolute;
-  inset: 3px;
-  border-radius: 8px;
-  background: linear-gradient(118deg, #c5fff423, transparent 38%, transparent 73%, #6af6d415);
-  pointer-events: none;
 }
 .hero-screen-glass img {
   display: block;
   width: 100%;
   height: auto;
-  border-radius: 8px;
+  filter: drop-shadow(0 0 8px #32e6bb75) drop-shadow(0 12px 16px #06191f88);
 }
 .hero-screen-glass + .hero-screen-glass {
   --screen-angle: rotateX(10deg) rotateY(-12deg) rotateZ(7deg);

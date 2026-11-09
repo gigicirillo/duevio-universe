@@ -48,6 +48,14 @@ anchor.onload = () => { dirty = true; };
 if (!reducedMotion) anchor.src = 'assets/anchor-detail.webp';
 const cache = new Map(), pending = new Set(), unavailable = new Set();
 let requestedFrame = 0;
+let frameDirection = 1;
+let paintedImage;
+const transitionFrames = [149, 150, 299, 300];
+const sceneVeil = $('#scene-veil');
+function fadeBetween(progress, center, width) {
+  const t = clamp(1 - Math.abs(progress - center) / width);
+  return t * t * (3 - 2 * t);
+}
 let ready=false,progress=0,lastFrame=-1,lastWidth=0,lastHeight=0,home=true,dirty=true,lenis=null,pages={};
 const clips=['drop','arrival','luminescence'];
 const setLoad=n=>{$('#load-number').textContent=n+'%';$('.load-line i').style.width=n+'%'};
@@ -71,10 +79,12 @@ function unlock() {
 
 function loadNearbyFrames() {
   if (!home || reducedMotion) return;
-  const offsets = [0, 1, 2, -1, 3, -2, 4, 5, 6];
-  for (const offset of offsets) {
+  const nearby = [0, 1, 3, 6, 10, -1, 2, 4, 5, -2]
+    .map(offset => requestedFrame + offset * frameDirection);
+  const upcomingCut = transitionFrames.filter(index => Math.abs(index - requestedFrame) <= 22);
+  const candidates = [nearby[0], ...upcomingCut, ...nearby.slice(1)];
+  for (const index of candidates) {
     if (pending.size >= 6) break;
-    const index = requestedFrame + offset;
     if (index < 0 || index >= 450 || cache.has(index) ||
         pending.has(index) || unavailable.has(index)) continue;
 
@@ -98,7 +108,7 @@ function loadNearbyFrames() {
     };
     const clip = clips[Math.floor(index / 150)];
     const number = String(index % 150 + 1).padStart(4, '0');
-    image.src = `frames/${clip}/frame_${number}.jpg?v=detail`;
+    image.src = `frames/${clip}/frame_${number}.jpg?v=20261109-flow`;
   }
 }
 
@@ -153,21 +163,32 @@ function revealEditorialMedia() {
   }
 }
 
-function render(p){const scene=sceneAt(p),index=scene.clip*150+Math.min(149,Math.floor(clamp(scene.t)*149));const w=stage.clientWidth,h=stage.clientHeight,dpr=Math.min(devicePixelRatio||1,2);const resize=w!==lastWidth||h!==lastHeight;if(resize){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.imageSmoothingQuality='high';lastWidth=w;lastHeight=h;}if(!dirty&&index===lastFrame&&!resize)return;lastFrame=index;dirty=false;
+function updateSceneVeil(p) {
+  if (reducedMotion) return;
+  const cloud = fadeBetween(p, .28, .043);
+  const city = fadeBetween(p, .72, .035);
+  sceneVeil.classList.toggle('city-veil', city > 0);
+  sceneVeil.style.opacity = Math.max(cloud, city);
+}
+function render(p){updateSceneVeil(p);const scene=sceneAt(p),index=scene.clip*150+Math.min(149,Math.floor(clamp(scene.t)*149));const w=stage.clientWidth,h=stage.clientHeight,dpr=Math.min(devicePixelRatio||1,2);const resize=w!==lastWidth||h!==lastHeight;if(resize){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);ctx.imageSmoothingQuality='high';lastWidth=w;lastHeight=h;}if(!dirty&&index===lastFrame&&!resize)return;lastFrame=index;dirty=false;
 if (!reducedMotion) {
+  frameDirection = Math.sign(index - requestedFrame) || frameDirection;
   requestedFrame = index;
   loadNearbyFrames();
   const nearest = [...cache.keys()].reduce((best, frame) =>
     best === undefined || Math.abs(frame - index) < Math.abs(best - index)
       ? frame : best, undefined);
   const posterReady = anchor.complete && anchor.naturalWidth;
-  if ((p < .003 || nearest === undefined) && posterReady) cover(anchor);
-  else if (nearest !== undefined) cover(cache.get(nearest));
+  const image = (p < .003 || nearest === undefined) && posterReady ? anchor : cache.get(nearest);
+  if (image && (resize || image !== paintedImage)) {
+    cover(image);
+    paintedImage = image;
+  }
 }
 let color=[5,9,16],fg='#e9edea';if(scene.clip===1){color=scene.t<.7?mix([0,0,0],[210,242,247],scene.t/.7):mix([210,242,247],[255,255,255],(scene.t-.7)/.3);if(scene.t>.45)fg='#12232c';}if(scene.clip===2){color=mix([11,20,39],[0,0,0],scene.t);}
 if(reducedMotion){color=[5,13,30];fg='#e9edea';}stage.style.background=rgb(color);document.body.style.background=rgb(color);stage.style.color=fg;document.body.classList.toggle("bright-stage",!reducedMotion&&scene.clip===1&&scene.t>.45);canvas.style.opacity=scene.clip===1?String(.95-.25*scene.t):'1';$('.film-shade').style.background=scene.clip===1?`linear-gradient(180deg,${rgb(color)} 0%,transparent 38%,transparent 65%,${rgb(color)} 100%)`:'linear-gradient(180deg,#05091055,transparent 45%,#05091010 70%,#050910cc)';
 const heroOpacity=clamp(1-p/.16);$('.hero-title').style.opacity=heroOpacity;$('.hero-title').style.transform=`translateY(${-p*140}px)`;
-const desc=scene.clip===1?Math.min(clamp(scene.t/.12),clamp((1-scene.t)/.16)):0;$('#descent-copy').style.opacity=desc;$('#descent-copy').style.transform=`translateY(${(1-desc)*25}px)`;$('#light-copy').style.opacity=scene.clip===2?clamp(scene.t/.15):0;
+const desc=scene.clip===1?Math.min(clamp((scene.t-.07)/.13),clamp((1-scene.t)/.16)):0;$('#descent-copy').style.opacity=desc;$('#descent-copy').style.transform=`translateY(${(1-desc)*25}px)`;$('#light-copy').style.opacity=scene.clip===2?clamp((scene.t-.07)/.16):0;
 const altitude = scene.clip === 0 ? 20000 :
   scene.clip === 1 ? descentAltitude(scene.t) : 0;
 const grounded = altitude === 0;

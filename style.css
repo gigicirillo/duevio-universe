@@ -302,3 +302,19 @@ html,body{overflow-x:clip}.source-page table{display:block;overflow-x:auto}.sour
 @media (prefers-reduced-motion: reduce) {
   .comparison-pictogram, .editorial-glass.editorial-visible { animation: none; }
 }
+
+.hero-title .eyebrow { font-size: clamp(10px, 1.05vw, 14px); }
+.hero-caption p { font-size: clamp(12px, 1.15vw, 16px); }
+#scene-veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse at 12% 84%, #77818a, transparent 72%),
+    radial-gradient(ellipse at 83% 15%, #b0a69a, transparent 65%),
+    #45505d;
+}
+#scene-veil.city-veil {
+  background: radial-gradient(ellipse at 50% 65%, #1b3847, #08121d 74%);
+}

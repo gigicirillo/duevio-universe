@@ -371,3 +371,31 @@ html,body{overflow-x:clip}.source-page table{display:block;overflow-x:auto}.sour
 @media (prefers-reduced-motion: reduce) {
   .solar-rays { display: none; }
 }
+
+@media (min-width: 851px) {
+  .hero-title h1 { font-size: clamp(78px, min(11vw, 20vh), 170px); }
+}
+@media (max-width: 850px) {
+  .hero-title h1 { font-size: 23vw; }
+}
+.editorial-mirror {
+  padding-bottom: clamp(36px, 5vw, 80px);
+  perspective: 1200px;
+}
+.dashboard-plane {
+  position: relative;
+  transform: rotateY(-7deg) rotateZ(-2deg);
+}
+.dashboard-plane .dashboard-reflection {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  transform: scaleY(-.48);
+  transform-origin: center;
+  translate: 0 -26%;
+  mask-image: linear-gradient(to top, #000 0%, transparent 44%);
+  filter: none;
+  opacity: .27;
+  pointer-events: none;
+}

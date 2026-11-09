@@ -116,7 +116,7 @@ function loadNearbyFrames() {
 async function preload() {
   try {
     const [response] = await Promise.all([
-      fetch('content.json?v=20261109-screens', { signal: AbortSignal.timeout(15000) }),
+      fetch('content.json?v=20261109-mirror', { signal: AbortSignal.timeout(15000) }),
       loadTranslations()
     ]);
     if (!response.ok) throw Error('Page content unavailable.');

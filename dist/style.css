@@ -491,12 +491,15 @@ html,body{overflow-x:clip}.source-page table{display:block;overflow-x:auto}.sour
 
 .solar-rays::before {
   background:
-    radial-gradient(ellipse at 0% 8%, #ffc47c85, transparent 39%),
+    radial-gradient(ellipse at 0% 8%, #ffc47c68, transparent 39%),
     conic-gradient(from 119deg at 0% 8%,
       transparent 1deg, #ffce8680 5deg, transparent 10deg,
       transparent 15deg, #ffe1a894 19deg, transparent 25deg,
       transparent 31deg, #ffc47c70 36deg, transparent 44deg);
-  mask-image: radial-gradient(ellipse at 0% 8%, #000 12%, transparent 78%);
+  mask-image:
+    linear-gradient(to bottom, transparent, #000 18%, #000 76%, transparent),
+    radial-gradient(ellipse at 0% 8%, #000b 12%, transparent 78%);
+  mask-composite: intersect;
 }
 .login {
   transition: background-color .22s ease, color .22s ease, box-shadow .22s ease;
@@ -533,3 +536,5 @@ html,body{overflow-x:clip}.source-page table{display:block;overflow-x:auto}.sour
   box-shadow: 0 0 12px #32e6bb55;
 }
 .hero-sound:focus-visible { outline: 2px solid #88ffeb; outline-offset: 3px; }
+
+.exosphere { display: block; margin-bottom: .45em; }

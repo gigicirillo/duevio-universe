@@ -142,3 +142,21 @@ html,body{overflow-x:clip}.source-page table{display:block;overflow-x:auto}.sour
   margin-bottom: 24px;
   filter: drop-shadow(0 0 14px #38ebc78a);
 }
+
+#loader {
+  transition: opacity .24s ease-out, visibility .24s;
+}
+.loader-pictogram {
+  display: block;
+  margin-bottom: 14px;
+  filter: drop-shadow(0 0 14px #38ebc7aa);
+  animation: loader-pulse 1.25s ease-in-out infinite alternate;
+}
+#loader.done .loader-pictogram { animation: none; }
+@keyframes loader-pulse {
+  from { opacity: .45; transform: translateY(3px) scale(.94); }
+  to { opacity: 1; transform: translateY(-3px) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loader-pictogram { animation: none; }
+}

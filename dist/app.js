@@ -2,20 +2,97 @@
 const $=s=>document.querySelector(s), clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const canvas=$('#film'),ctx=canvas.getContext('2d',{alpha:false}),stage=$('#stage'),journey=$('#journey');
 const fallback=matchMedia('(max-width:850px), (prefers-reduced-motion:reduce)').matches;
-const anchor=new Image();anchor.src='assets/anchor.png';
-const frames=[],cache=new Map(),pending=new Set();let ready=false,progress=0,lastFrame=-1,lastWidth=0,lastHeight=0,home=true,dirty=true,lenis=null,pages={};
+const anchor = new Image();
+anchor.onload = () => { dirty = true; };
+if (!fallback) anchor.src = 'assets/anchor-preview.jpg';
+const cache = new Map(), pending = new Set(), unavailable = new Set();
+let requestedFrame = 0;
+let ready=false,progress=0,lastFrame=-1,lastWidth=0,lastHeight=0,home=true,dirty=true,lenis=null,pages={};
 const clips=['drop','arrival','luminescence'];
 const setLoad=n=>{$('#load-number').textContent=n+'%';$('.load-line i').style.width=n+'%'};
 function sceneAt(p){if(p<.28)return {clip:0,t:p/.28};if(p<.72)return {clip:1,t:clamp((p-.28)/.396)};return {clip:2,t:(p-.72)/.28}}
-function unlock(){setLoad(100);ready=true;document.body.classList.remove('loading');$('#loader').classList.add('done');observeHeroLanding();dirty=true;if(fallback)$('#fallback').play().catch(()=>{});if(!fallback&&!matchMedia('(prefers-reduced-motion:reduce)').matches&&window.Lenis)lenis=new Lenis({lerp:.085,smoothWheel:true});}
-function decode(i){if(cache.has(i)||pending.has(i)||!frames[i])return;pending.add(i);const im=new Image();im.onload=()=>{pending.delete(i);cache.set(i,im);if(cache.size>24){const far=[...cache.keys()].sort((a,b)=>Math.abs(b-i)-Math.abs(a-i));cache.delete(far[0]);}dirty=true};im.onerror=()=>pending.delete(i);im.src=frames[i];}
-async function preload(){try{const response=await fetch('content.json?v=20261109-led');if(!response.ok)throw Error('Page content unavailable.');pages=await response.json();$('#home-content').innerHTML=pages.home;route();if(fallback){const v=$('#fallback');await new Promise((resolve,reject)=>{v.addEventListener('loadeddata',resolve,{once:true});v.addEventListener('error',()=>reject(Error('Video could not be loaded.')),{once:true});v.load();if(v.readyState>=2)resolve()});unlock();return;}
-let completed=0,next=0;async function worker(){while(next<450){const i=next++,clip=Math.floor(i/150),num=i%150+1,path=`frames/${clips[clip]}/frame_${String(num).padStart(4,'0')}.jpg`;const r=await fetch(path);if(!r.ok)throw Error('A sequence frame could not be loaded.');frames[i]=URL.createObjectURL(await r.blob());completed++;setLoad(Math.floor(completed/450*99));}}
-await Promise.all(Array.from({length:8},worker));await new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>{cache.set(0,im);resolve()};im.onerror=reject;im.src=frames[0]});unlock();}catch(e){$('#load-error').hidden=false;$('#load-error').textContent=e.message+' Please reload to retry.';$('#load-number').textContent='RETRY';$('#load-number').style.cursor='pointer';$('#load-number').onclick=()=>location.reload();}}
+function startSmoothScroll() {
+  if (ready && !fallback && !lenis && window.Lenis) {
+    lenis = new Lenis({ lerp: .085, smoothWheel: true });
+  }
+}
+$('#lenis-script').addEventListener('load', startSmoothScroll);
+
+function unlock() {
+  setLoad(100);
+  ready = true;
+  document.body.classList.remove('loading');
+  $('#loader').classList.add('done');
+  observeHeroLanding();
+  dirty = true;
+  if (fallback && home) $('#fallback').play().catch(() => {});
+  startSmoothScroll();
+}
+
+function loadNearbyFrames() {
+  if (!home || fallback) return;
+  const offsets = [0, 1, 2, -1, 3, -2, 4, 5, 6];
+  for (const offset of offsets) {
+    if (pending.size >= 6) break;
+    const index = requestedFrame + offset;
+    if (index < 0 || index >= 450 || cache.has(index) ||
+        pending.has(index) || unavailable.has(index)) continue;
+
+    const image = new Image();
+    pending.add(index);
+    image.onload = () => {
+      pending.delete(index);
+      cache.set(index, image);
+      if (cache.size > 32) {
+        const farthest = [...cache.keys()].reduce((a, b) =>
+          Math.abs(a - requestedFrame) > Math.abs(b - requestedFrame) ? a : b);
+        cache.delete(farthest);
+      }
+      dirty = true;
+      loadNearbyFrames();
+    };
+    image.onerror = () => {
+      pending.delete(index);
+      unavailable.add(index);
+      loadNearbyFrames();
+    };
+    const clip = clips[Math.floor(index / 150)];
+    const number = String(index % 150 + 1).padStart(4, '0');
+    image.src = `frames/${clip}/frame_${number}.jpg`;
+  }
+}
+
+async function preload() {
+  try {
+    const response = await fetch('content.json?v=20261109-led', {
+      signal: AbortSignal.timeout(15000)
+    });
+    if (!response.ok) throw Error('Page content unavailable.');
+    pages = await response.json();
+    $('#home-content').innerHTML = pages.home;
+    route();
+    unlock();
+  } catch (error) {
+    $('#load-error').hidden = false;
+    $('#load-error').textContent = 'Page content unavailable. Please reload to retry.';
+    $('#load-number').textContent = 'RETRY';
+    $('#load-number').style.cursor = 'pointer';
+    $('#load-number').onclick = () => location.reload();
+  }
+}
 function cover(im){const scale=Math.max(canvas.width/im.naturalWidth,canvas.height/im.naturalHeight);ctx.drawImage(im,(canvas.width-im.naturalWidth*scale)/2,(canvas.height-im.naturalHeight*scale)/2,im.naturalWidth*scale,im.naturalHeight*scale)}
 function mix(a,b,t){return a.map((v,i)=>Math.round(v+(b[i]-v)*t))}function rgb(v){return `rgb(${v.join(',')})`}
 function render(p){const scene=sceneAt(p),index=scene.clip*150+Math.min(149,Math.floor(clamp(scene.t)*149));const w=stage.clientWidth,h=stage.clientHeight,dpr=Math.min(devicePixelRatio||1,1.5);const resize=w!==lastWidth||h!==lastHeight;if(resize){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);lastWidth=w;lastHeight=h;}if(!dirty&&index===lastFrame&&!resize)return;lastFrame=index;dirty=false;
-if(!fallback){decode(index);for(let off=1;off<=4;off++){decode(clamp(index+off,0,449));decode(clamp(index-off,0,449));}const im=cache.get(index);if(p<.003&&anchor.complete&&anchor.naturalWidth)cover(anchor);else if(im)cover(im);else{const nearest=[...cache.keys()].sort((a,b)=>Math.abs(a-index)-Math.abs(b-index))[0];if(nearest!==undefined)cover(cache.get(nearest));}}
+if (!fallback) {
+  requestedFrame = index;
+  loadNearbyFrames();
+  const nearest = [...cache.keys()].reduce((best, frame) =>
+    best === undefined || Math.abs(frame - index) < Math.abs(best - index)
+      ? frame : best, undefined);
+  const posterReady = anchor.complete && anchor.naturalWidth;
+  if ((p < .003 || nearest === undefined) && posterReady) cover(anchor);
+  else if (nearest !== undefined) cover(cache.get(nearest));
+}
 let color=[5,9,16],fg='#e9edea';if(scene.clip===1){color=scene.t<.7?mix([0,0,0],[210,242,247],scene.t/.7):mix([210,242,247],[255,255,255],(scene.t-.7)/.3);if(scene.t>.45)fg='#12232c';}if(scene.clip===2){color=mix([11,20,39],[0,0,0],scene.t);}
 if(fallback){color=[5,13,30];fg='#e9edea';}stage.style.background=rgb(color);document.body.style.background=rgb(color);stage.style.color=fg;document.body.classList.toggle("bright-stage",!fallback&&scene.clip===1&&scene.t>.45);canvas.style.opacity=scene.clip===1?String(.95-.25*scene.t):'1';$('.film-shade').style.background=scene.clip===1?`linear-gradient(180deg,${rgb(color)} 0%,transparent 38%,transparent 65%,${rgb(color)} 100%)`:'linear-gradient(180deg,#05091055,transparent 45%,#05091010 70%,#050910cc)';
 const heroOpacity=clamp(1-p/.16);$('.hero-title').style.opacity=heroOpacity;$('.hero-title').style.transform=`translateY(${-p*140}px)`;

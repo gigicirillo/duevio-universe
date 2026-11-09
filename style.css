@@ -9,3 +9,66 @@ html,body{overflow-x:clip}.source-page table{display:block;overflow-x:auto}.sour
 @media(max-width:1100px){.pricing-grid{grid-template-columns:1fr 1fr}.price-card:last-child{grid-column:1/-1}.feature-grid.three{grid-template-columns:repeat(2,minmax(0,1fr))}.source-page .hero-grid{gap:30px}.price-card>p:not(.price){min-height:0}}
 @media(max-width:850px){.hero-title{top:21%}.hero-title h1{font-size:26vw}.hero-caption{margin-top:18px}.chapter-copy{width:72%;top:26%}.chapter-copy h2{font-size:clamp(40px,7.6vw,58px)}.source-page .hero-grid{grid-template-columns:1fr;gap:35px}.source-page h1{font-size:clamp(34px,6vw,48px)}.source-page .overview-card{padding:25px}.source-page .section,.source-page>.hero{padding-top:65px;padding-bottom:65px}.feature-card,.module-card,.sector-card,.steps-grid article{padding:25px}.payment-strip{padding:25px}.payment-logos{gap:10px}.token-package-top{flex-wrap:wrap}.form-card{padding:24px}.material-grid h3{font-size:19px}.final-cta h2{font-size:clamp(65px,15vw,110px)}}
 @media(max-width:600px){.feature-grid.three,.feature-grid.four,.pricing-grid,.token-packages-grid{grid-template-columns:1fr}.price-card:last-child{grid-column:auto}.price-card{padding:28px}.price-card .price strong{font-size:44px}.price-card .price{min-height:0}.payment-strip{gap:20px}.payment-logos{width:100%}.payment-logos figure{min-width:0;flex:1;padding:8px}.hero-title h1{font-size:26vw}.chapter-copy h2{font-size:42px;line-height:1.18}.editorial-intro h2{font-size:34px}.source-page h1{font-size:35px}.metric-grid{gap:12px}.metric-grid>div{padding:14px}.metric-grid strong{font-size:20px}#detail .module-card h3,#detail .sector-card h3{font-size:22px}.token-package-price{font-size:36px}.source-page .home-visual-section h2{font-size:43px}}
+
+/* Layered product photography for the three commercial heroes. */
+#detail .source-page[data-page] > .hero .hero-with-screens {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  align-items: center;
+  gap: 38px 54px;
+}
+.hero-with-screens > .overview-card {
+  grid-column: 1 / -1;
+}
+.hero-screens {
+  position: relative;
+  isolation: isolate;
+  margin: 0;
+  aspect-ratio: 1.42;
+  perspective: 1000px;
+}
+.hero-screens::before {
+  content: "";
+  position: absolute;
+  inset: 5% -5%;
+  background: radial-gradient(ellipse, #28798342, transparent 68%);
+  pointer-events: none;
+}
+.hero-screens img {
+  position: absolute;
+  display: block;
+  width: 86%;
+  height: auto;
+  top: 9%;
+  left: 4%;
+  z-index: 2;
+  filter: drop-shadow(0 24px 22px #0009);
+  transform: rotateX(13deg) rotateY(-17deg) rotateZ(-5deg);
+  animation: hero-screen-hover 8s ease-in-out infinite alternate;
+}
+.hero-screens img + img {
+  width: 61%;
+  left: 36%;
+  top: 47%;
+  z-index: 3;
+  transform: rotateX(10deg) rotateY(-12deg) rotateZ(7deg);
+  animation-delay: -3s;
+  animation-duration: 10s;
+}
+@keyframes hero-screen-hover {
+  from { translate: 0 0; }
+  to { translate: 0 -12px; }
+}
+@media (max-width: 850px) {
+  #detail .source-page[data-page] > .hero .hero-with-screens {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 26px;
+  }
+  .hero-screens {
+    width: min(100%, 560px);
+    justify-self: center;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-screens img { animation: none; }
+}

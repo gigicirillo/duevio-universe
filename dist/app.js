@@ -2,6 +2,71 @@
 const $=s=>document.querySelector(s), clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const canvas=$('#film'),ctx=canvas.getContext('2d',{alpha:false}),stage=$('#stage'),journey=$('#journey');
 const fallback=matchMedia('(max-width:850px), (prefers-reduced-motion:reduce)').matches;
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const supportedLanguages = ['en', 'it', 'de', 'es', 'fr', 'ru'];
+const languageParam = new URL(location.href).searchParams.get('lang');
+const language = supportedLanguages.includes(languageParam) ? languageParam : 'en';
+let translations = {};
+document.documentElement.lang = language;
+$('#language-select').value = language;
+$('#language-select').addEventListener('change', (event) => {
+  const url = new URL(location.href);
+  if (event.target.value === 'en') url.searchParams.delete('lang');
+  else url.searchParams.set('lang', event.target.value);
+  location.assign(url);
+});
+
+function applyTranslations(root) {
+  for (const node of root.querySelectorAll('[data-i18n]')) {
+    const value = translations[node.dataset.i18n];
+    if (typeof value === 'string') node.textContent = value;
+  }
+  for (const node of root.querySelectorAll('[data-i18n-placeholder]')) {
+    const value = translations[node.dataset.i18nPlaceholder];
+    if (typeof value === 'string') node.placeholder = value;
+  }
+  for (const link of root.querySelectorAll('a[href^="https://signup.duevio.com/"]')) {
+    const url = new URL(link.href);
+    url.searchParams.set('lang', language);
+    link.href = url.href;
+  }
+}
+
+async function loadTranslations() {
+  if (language === 'en') return;
+  try {
+    const response = await fetch(`assets/i18n/${language}.json`, { signal: AbortSignal.timeout(5000) });
+    if (!response.ok) throw Error('Translation unavailable');
+    translations = await response.json();
+  } catch (error) {
+    document.documentElement.lang = 'en';
+    $('#language-select').value = 'en';
+  }
+}
+
+const mobileClips = ['clip-a.mp4', 'clip-b.mp4', 'clip-c.mp4'];
+const mobileVideo = $('#fallback');
+let mobileClip = -1;
+let mobileVideoVisible = false;
+
+function updateMobileVideo(clip, visible) {
+  if (!fallback || reducedMotion) return;
+  if (!visible) {
+    if (mobileVideoVisible) mobileVideo.pause();
+    mobileVideoVisible = false;
+    return;
+  }
+  const changed = clip !== mobileClip;
+  if (changed) {
+    mobileClip = clip;
+    mobileVideo.poster = clip === 0 ? 'assets/anchor-preview.jpg' :
+      `frames/${clips[clip]}/frame_0001.jpg`;
+    mobileVideo.src = `assets/${mobileClips[clip]}`;
+  }
+  if (changed || !mobileVideoVisible) mobileVideo.play().catch(() => {});
+  mobileVideoVisible = true;
+}
+
 const anchor = new Image();
 anchor.onload = () => { dirty = true; };
 if (!fallback) anchor.src = 'assets/anchor-preview.jpg';
@@ -25,7 +90,6 @@ function unlock() {
   $('#loader').classList.add('done');
   observeHeroLanding();
   dirty = true;
-  if (fallback && home) $('#fallback').play().catch(() => {});
   startSmoothScroll();
 }
 
@@ -64,12 +128,14 @@ function loadNearbyFrames() {
 
 async function preload() {
   try {
-    const response = await fetch('content.json?v=20261109-led', {
-      signal: AbortSignal.timeout(15000)
-    });
+    const [response] = await Promise.all([
+      fetch('content.json?v=20261109-led', { signal: AbortSignal.timeout(15000) }),
+      loadTranslations()
+    ]);
     if (!response.ok) throw Error('Page content unavailable.');
     pages = await response.json();
     $('#home-content').innerHTML = pages.home;
+    applyTranslations(document);
     route();
     unlock();
   } catch (error) {
@@ -99,7 +165,7 @@ const heroOpacity=clamp(1-p/.16);$('.hero-title').style.opacity=heroOpacity;$('.
 const desc=scene.clip===1?Math.min(clamp(scene.t/.12),clamp((1-scene.t)/.16)):0;$('#descent-copy').style.opacity=desc;$('#descent-copy').style.transform=`translateY(${(1-desc)*25}px)`;$('#light-copy').style.opacity=scene.clip===2?clamp(scene.t/.15):0;
 const altitude=scene.clip===0?20000:scene.clip===1?Math.round(20000*(1-scene.t)):0;$('#altitude').textContent=altitude.toLocaleString('en-US');$('#distance').textContent='DISTANCE '+String(20000-altitude).padStart(5,'0')+' m';$('.alt-track i').style.transform=`scaleX(${1-altitude/20000})`;$('#zone').textContent=scene.clip===2?'LUMINESCENCE':altitude>3000?'ATMOSPHERIC DESCENT':altitude>1000?'LANDING ZONE':altitude>200?'TWILIGHT ZONE':altitude>0?'END OF SUNLIGHT':'GROUND / CONNECTED';
 $('#chapter').textContent=['00 — FROM THE UNIVERSE','01 — THE DESCENT','02 — LUMINESCENCE'][scene.clip];const marks=[{a:3000,text:'LANDING ZONE / GROUND'},{a:1000,text:'TWILIGHT ZONE'},{a:200,text:'END OF SUNLIGHT'}];const mark=marks.find(m=>Math.abs(altitude-m.a)<(m.a===3000?1800:500));$('#marker').style.opacity=scene.clip===1&&mark?'1':'0';if(mark){$('#marker-alt').textContent=mark.a.toLocaleString()+' m';$('#marker-text').textContent=mark.text;}}
-function tick(time){if(lenis)lenis.raf(time);if(ready&&home){const max=journey.offsetHeight-innerHeight,target=clamp(scrollY/Math.max(1,max));progress=fallback?target:progress+(target-progress)*.12;if(Math.abs(target-progress)<.00001)progress=target;render(progress);}requestAnimationFrame(tick)}
+function tick(time){if(lenis)lenis.raf(time);if(ready&&home){const max=journey.offsetHeight-innerHeight,target=clamp(scrollY/Math.max(1,max));progress=fallback?target:progress+(target-progress)*.12;if(Math.abs(target-progress)<.00001)progress=target;updateMobileVideo(sceneAt(progress).clip,scrollY<journey.offsetHeight);render(progress);}requestAnimationFrame(tick)}
 const heroLandingObserver = new IntersectionObserver((entries, observer) => {
   for (const entry of entries) {
     if (!entry.isIntersecting) continue;
@@ -117,7 +183,7 @@ function observeHeroLanding() {
 }
 
 function route(){const key=location.hash.slice(1)||'home';if(!pages.home)return;if(key==='experience-end'){if(!home){location.hash='home';return}$('#experience-end').scrollIntoView({behavior:'smooth'});return;}if(!pages[key]){const el=document.getElementById(key);if(el){el.scrollIntoView({behavior:'smooth'});return;}return;}
-home=key==='home';if(!home)document.body.classList.remove("bright-stage");document.body.classList.toggle('detail-mode',!home);$('#detail').hidden=home;$('#homepage').hidden=!home;if(!home)$('#detail').innerHTML=pages[key];observeHeroLanding();document.querySelectorAll('header nav a').forEach(a=>a.classList.toggle('active',a.hash==='#'+key));$('header').classList.remove('menu-open');$('#menu-toggle').setAttribute('aria-expanded','false');if(lenis)lenis.scrollTo(0,{immediate:true});window.scrollTo(0,0);progress=0;lastFrame=-1;dirty=true;document.title=home?'Duevio — The ideal compliance platform is not science fiction.':`Duevio — ${$('#detail h1')?.textContent.trim()||key}`;if(!home)$('#fallback').pause();else if(fallback&&ready)$('#fallback').play().catch(()=>{});}
+home=key==='home';if(!home)document.body.classList.remove("bright-stage");document.body.classList.toggle('detail-mode',!home);$('#detail').hidden=home;$('#homepage').hidden=!home;if(!home){$('#detail').innerHTML=pages[key];applyTranslations($('#detail'));}observeHeroLanding();document.querySelectorAll('header nav a').forEach(a=>a.classList.toggle('active',a.hash==='#'+key));$('header').classList.remove('menu-open');$('#menu-toggle').setAttribute('aria-expanded','false');if(lenis)lenis.scrollTo(0,{immediate:true});window.scrollTo(0,0);progress=0;lastFrame=-1;dirty=true;document.title=home?'Duevio — The ideal compliance platform is not science fiction.':`Duevio — ${$('#detail h1')?.textContent.trim()||key}`;if(!home)updateMobileVideo(0,false);}
 $('#menu-toggle').onclick=()=>{const open=$('header').classList.toggle('menu-open');$('#menu-toggle').setAttribute('aria-expanded',String(open));};window.addEventListener('hashchange',route);window.addEventListener('resize',()=>{dirty=true});
 const shots=['Dashboard scura Duevio frontale-6.png','Schermata Duevio della coda KYC-11.png','Schermata Duevio frontale su sfondo trasparente-3.png','Schermata riepilogo cliente Duevio-12.png'];document.querySelectorAll('[data-shot]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-shot]').forEach(a=>a.classList.remove('selected'));b.classList.add('selected');$('.gallery-main img').src='assets/'+shots[Number(b.dataset.shot)];$('.gallery-main img').alt=b.textContent.replace(/^\d+ \/ /,'')+' — Duevio platform';});
 document.addEventListener('click',e=>{const a=e.target.closest('a');if(a?.getAttribute('href')==='#cookies'&&document.body.classList.contains('detail-mode')&&location.hash==='#cookies')return;});

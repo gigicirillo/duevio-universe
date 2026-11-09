@@ -160,3 +160,49 @@ html,body{overflow-x:clip}.source-page table{display:block;overflow-x:auto}.sour
 @media (prefers-reduced-motion: reduce) {
   .loader-pictogram { animation: none; }
 }
+
+/* One editorial grid across the introductory and content sections. */
+:root { --content-gutter: max(7%, calc((100% - 1280px) / 2)); }
+.editorial-intro {
+  padding-inline: var(--content-gutter);
+  min-height: min(62vh, 640px);
+}
+.editorial-intro .round-link { right: var(--content-gutter); }
+.source-page :is(p:not(.eyebrow):not(.price), li, .problem-grid > div) {
+  line-height: 1.75;
+  text-align: justify;
+  text-align-last: start;
+  hyphens: auto;
+  overflow-wrap: anywhere;
+}
+.source-page .problem-grid { display: grid; gap: .65rem; margin-top: 1.4rem; }
+.source-page .problem-grid > div {
+  padding: .65rem 0;
+  border-bottom: 1px solid #14232c22;
+}
+.language-choice { display: inline-flex; align-items: center; margin: 0; }
+.language-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.language-choice select {
+  width: auto;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid #8ba7b060;
+  border-radius: 20px;
+  color: inherit;
+  background: transparent;
+  font: 500 11px Montserrat, sans-serif;
+}
+.language-choice select:focus-visible { outline: 2px solid #21a696; outline-offset: 3px; }
+@media (max-width: 850px) {
+  :root { --content-gutter: 8%; }
+  .editorial-intro .round-link { right: auto; }
+  #fallback { object-fit: contain; background: #050d1e; }
+  .nav-actions { gap: 8px; }
+  .language-choice select { max-width: 92px; padding: 7px 5px; }
+}

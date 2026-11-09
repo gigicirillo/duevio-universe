@@ -212,7 +212,84 @@ $('.alt-track i').style.transform = `scaleX(${1 - altitude / 20000})`;
 $('#zone').textContent = altitude > 3000 ? 'ATMOSPHERIC DESCENT' :
   altitude > 1000 ? 'LANDING ZONE' : altitude > 200 ? 'TWILIGHT ZONE' : 'END OF SUNLIGHT';
 $('#chapter').textContent=['00 — FROM THE UNIVERSE','01 — THE DESCENT','02 — LUMINESCENCE'][scene.clip];const marks=[{a:3000,text:'LANDING ZONE / GROUND'},{a:1000,text:'TWILIGHT ZONE'},{a:200,text:'END OF SUNLIGHT'}];const mark=marks.find(m=>Math.abs(altitude-m.a)<(m.a===3000?1800:500));$('#marker').style.opacity=scene.clip===1&&mark?'1':'0';if(mark){$('#marker-alt').textContent=mark.a.toLocaleString()+' m';$('#marker-text').textContent=mark.text;}}
-function tick(time){if(lenis)lenis.raf(time);if(ready&&home){const max=journey.offsetHeight-stage.clientHeight,target=clamp(scrollY/Math.max(1,max));progress=reducedMotion?target:progress+(target-progress)*.12;if(Math.abs(target-progress)<.00001)progress=target;render(progress);}requestAnimationFrame(tick)}
+const soundButton = $('.hero-sound');
+const soundLabels = { en: 'Sound', it: 'Audio', de: 'Ton', es: 'Sonido', fr: 'Son', ru: 'Звук' };
+soundButton.setAttribute('aria-label', soundLabels[language]);
+soundButton.title = soundLabels[language];
+let soundContext;
+let windVolume;
+let soundEnabled = false;
+let windLevel = 0;
+
+function startHeroSound() {
+  soundContext = new AudioContext();
+  const noise = soundContext.createBuffer(1, soundContext.sampleRate * 3, soundContext.sampleRate);
+  const samples = noise.getChannelData(0);
+  for (let i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1;
+  const wind = soundContext.createBufferSource();
+  wind.buffer = noise;
+  wind.loop = true;
+  const filter = soundContext.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 650;
+  windVolume = soundContext.createGain();
+  windVolume.gain.value = 0;
+  wind.connect(filter).connect(windVolume).connect(soundContext.destination);
+  wind.start();
+}
+
+soundButton.addEventListener('click', async () => {
+  if (soundEnabled) {
+    soundEnabled = false;
+    soundButton.setAttribute('aria-pressed', 'false');
+    return;
+  }
+  try {
+    if (!soundContext) startHeroSound();
+    await soundContext.resume();
+    soundEnabled = true;
+    soundButton.setAttribute('aria-pressed', 'true');
+  } catch {
+    soundButton.setAttribute('aria-pressed', 'false');
+  }
+});
+
+function playDroplet() {
+  if (!soundEnabled || !home || progress >= .045 || document.hidden) return;
+  const now = soundContext.currentTime;
+  const tap = soundContext.createOscillator();
+  const volume = soundContext.createGain();
+  tap.frequency.setValueAtTime(1150 + Math.random() * 420, now);
+  tap.frequency.exponentialRampToValueAtTime(480, now + .05);
+  volume.gain.setValueAtTime(.001, now);
+  volume.gain.linearRampToValueAtTime(.025, now + .005);
+  volume.gain.exponentialRampToValueAtTime(.001, now + .075);
+  tap.connect(volume).connect(soundContext.destination);
+  tap.start(now);
+  tap.stop(now + .08);
+}
+
+for (const eventName of ['animationstart', 'animationiteration']) {
+  heroDroplets.addEventListener(eventName, event => {
+    if (event.animationName === 'droplet-rise' && soundEnabled) {
+      setTimeout(playDroplet, 918); // Impact at 17% of the 5.4s rise animation.
+    }
+  });
+}
+
+document.addEventListener('visibilitychange', updateHeroSound);
+
+function updateHeroSound() {
+  if (!windVolume) return;
+  const level = soundEnabled && home && !document.hidden
+    ? Math.round(clamp(progress / .045) * clamp((.72 - progress) / .15) * 20) / 200
+    : 0;
+  if (level === windLevel) return;
+  windLevel = level;
+  windVolume.gain.setTargetAtTime(level, soundContext.currentTime, .18);
+}
+
+function tick(time){if(lenis)lenis.raf(time);if(ready&&home){const max=journey.offsetHeight-stage.clientHeight,target=clamp(scrollY/Math.max(1,max));progress=reducedMotion?target:progress+(target-progress)*.12;if(Math.abs(target-progress)<.00001)progress=target;render(progress);}updateHeroSound();requestAnimationFrame(tick)}
 const heroLandingObserver = new IntersectionObserver((entries, observer) => {
   for (const entry of entries) {
     if (!entry.isIntersecting) continue;

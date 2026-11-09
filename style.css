@@ -514,3 +514,22 @@ html,body{overflow-x:clip}.source-page table{display:block;overflow-x:auto}.sour
   .hero-title .hero-caption { white-space: nowrap; }
   .hero-title { top: 12%; }
 }
+
+.hero-sound {
+  position: absolute;
+  right: 4%;
+  bottom: 56px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  background: #05091066;
+  color: #e9edea;
+  cursor: pointer;
+  font-size: 18px;
+}
+.hero-sound[aria-pressed="true"] {
+  color: #88ffeb;
+  box-shadow: 0 0 12px #32e6bb55;
+}
+.hero-sound:focus-visible { outline: 2px solid #88ffeb; outline-offset: 3px; }
